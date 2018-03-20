@@ -30,7 +30,7 @@ static struct file_operations fops =
 // The buffer in which we will store characters!
 char buffer[BUFFER_SIZE];
 
-int init_module(void)
+static int init_module(void)
 {
 	printk(KERN_INFO "Initializing the test device...\n");
 
@@ -79,7 +79,7 @@ int init_module(void)
 	return 0;
 }
 
-void cleanup_module(void)
+static void cleanup_module(void)
 {
 	printk(KERN_INFO "Cleaning up test device!\n");
 
@@ -125,3 +125,6 @@ static ssize_t dev_write(struct file * filep, const char * buffer, size_t len, l
 	printk(KERN_INFO "Test device received %zu characters: %s\n", len, rec);
 	return len;
 }
+
+module_init(init_module);
+module_exit(cleanup_module);
