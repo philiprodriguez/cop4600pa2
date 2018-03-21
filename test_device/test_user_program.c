@@ -12,13 +12,21 @@ int main(){
    int ret, fd;
    char stringToSend[BUFFER_LENGTH];
    printf("Starting device test code example...\n");
-   fd = open("/dev/testdev", O_RDWR);             // Open the device with read/write access
+   fd = open("/dev/fifodev", O_RDWR);             // Open the device with read/write access
    if (fd < 0){
       perror("Failed to open the device...");
       return errno;
    }
    printf("Type in a short string to send to the kernel module:\n");
    scanf("%[^\n]%*c", stringToSend);                // Read in a string (with spaces)
+
+   int i;
+   for (i = 0; i < BUFFER_LENGTH; i++) 
+   {
+      if (stringToSend[i] == '\0')
+	printf("found a null terminator!\n");
+   }
+
    printf("Writing message to the device [%s].\n", stringToSend);
    ret = write(fd, stringToSend, strlen(stringToSend)); // Send the string to the LKM
    if (ret < 0){
