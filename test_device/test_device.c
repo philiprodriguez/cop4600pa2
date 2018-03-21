@@ -8,7 +8,7 @@
 #define CLASS_NAME "test"
 #define BUFFER_SIZE 1024
 
-int majorNumber;
+static int majorNumber;
 struct class * testdeviceClass;
 struct device * testdeviceDevice;
 
@@ -28,9 +28,10 @@ static struct file_operations fops =
 };
 
 // The buffer in which we will store characters!
-char buffer[BUFFER_SIZE];
+char message[BUFFER_SIZE] = {0};
+short size_of_message;
 
-static int init_module(void)
+int init_module(void)
 {
 	printk(KERN_INFO "Initializing the test device...\n");
 
@@ -79,7 +80,7 @@ static int init_module(void)
 	return 0;
 }
 
-static void cleanup_module(void)
+void cleanup_module(void)
 {
 	printk(KERN_INFO "Cleaning up test device!\n");
 
@@ -87,7 +88,7 @@ static void cleanup_module(void)
 	class_unregister(testdeviceClass);
 	class_destroy(testdeviceClass);
 	unregister_chrdev(majorNumber, DEVICE_NAME);
-	
+
 	printk(KERN_INFO "Test device cleaned up!\n");
 }
 
@@ -99,13 +100,13 @@ static int dev_open(struct inode * inodep, struct file * filep)
 
 static int dev_release(struct inode * inodep, struct file * filep)
 {
-	printk(KERN_INFO "Test device released.\n");
+	printk(KERN_INFO "Test device closed.\n");
 	return 0;
 }
 
 static ssize_t dev_read(struct file * filep, char * buffer, size_t len, loff_t * offset)
 {
-	int error_count = copy_to_user(buffer, "TestMessage", 12);
+	int error_count = copy_to_user(buffer, message, size_of_message);
 	if (error_count == 0)
 	{
 		printk(KERN_INFO "Successfully sent characters to user program.\n");
@@ -121,10 +122,13 @@ static ssize_t dev_read(struct file * filep, char * buffer, size_t len, loff_t *
 static ssize_t dev_write(struct file * filep, const char * buffer, size_t len, loff_t * offset)
 {
 	char rec[1024];
-	sprintf(rec, "%s(%zu letters)", buffer, len);
+	if (len < BUFFER_SIZE) {
+		sprintf(message, "%s", buffer);
+	} else {
+		snprintf(message, BUFFER_SIZE, "%s", buffer);
+	}
+	sprintf(rec, "%s(%zu letters)", message, len);
+	size_of_message = strlen(message);
 	printk(KERN_INFO "Test device received %zu characters: %s\n", len, rec);
 	return len;
 }
-
-module_init(init_module);
-module_exit(cleanup_module);
