@@ -1,38 +1,49 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <unistd.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<errno.h>
+#include<fcntl.h>
+#include<string.h>
+#include<unistd.h>
 
-int main()
-{
-	char stringHolder[256];
-	strcpy(stringHolder, "test message!");
-	
-	int device = open("/dev/testdev", O_RDWR);
-	if (device < 0)
-	{
-		printf("Failed to open device! %d\n", device);
-		return -1;
-	}
+#define BUFFER_LENGTH 1024               ///< The buffer length (crude but fine)
+static char receive[BUFFER_LENGTH];     ///< The receive buffer from the LKM
 
-	int returned  = write(device, stringHolder, strlen(stringHolder));
+int main(){
+   int ret, fd;
+   char stringToSend[BUFFER_LENGTH];
+   printf("Starting device test code example...\n");
+   fd = open("/dev/fifodev", O_RDWR);             // Open the device with read/write access
+   if (fd < 0){
+      perror("Failed to open the device...");
+      return errno;
+   }
+   printf("Type in a short string to send to the kernel module:\n");
+   scanf("%[^\n]%*c", stringToSend);                // Read in a string (with spaces)
 
-	if (returned < 0)
-	{
-		printf("Shit went south writing!\n");
-	}
-	printf("Wrote stuff to device!\n");
+   int i;
+   for (i = 0; i < BUFFER_LENGTH; i++) 
+   {
+      if (stringToSend[i] == '\0')
+	printf("found a null terminator!\n");
+   }
 
-	returned  = read(device, stringHolder, strlen(stringHolder));
+   printf("Writing message to the device [%s].\n", stringToSend);
+   ret = write(fd, stringToSend, strlen(stringToSend)); // Send the string to the LKM
+   if (ret < 0){
+      perror("Failed to write the message to the device.");
+      return errno;
+   }
 
-	if (returned < 0)
-	{
-		printf("Shit went south reading!\n");
-	}
-	printf("Read stuff from device: \"%s\"!\n", stringHolder);
+   printf("Press ENTER to read back from the device...\n");
+   getchar();
 
-	return 0;
+   printf("Reading from the device...\n");
+   ret = read(fd, receive, BUFFER_LENGTH);        // Read the response from the LKM
+   if (ret < 0){
+      perror("Failed to read the message from the device.");
+      return errno;
+   }
+   printf("The received message is: [%s]\n", receive);
+   printf("End of the program\n");
+   return 0;
 }
-
